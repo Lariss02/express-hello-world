@@ -1,6 +1,33 @@
 const express = require("express");
+const https = require('https');
 const app = express();
 const port = process.env.PORT || 3001;
+
+function fetchPublicData() {
+  return new Promise((resolve, reject) => {
+    const request = https.get('https://jsonplaceholder.typicode.com/posts/1', (response) => {
+      let body = '';
+      response.setEncoding('utf8');
+      response.on('data', (chunk) => {
+        body += chunk;
+      });
+      response.on('end', () => {
+        if (response.statusCode < 200 || response.statusCode >= 300) {
+          return reject(new Error(`API pública respondeu com status ${response.statusCode}`));
+        }
+
+        try {
+          resolve(JSON.parse(body));
+        } catch (error) {
+          reject(error);
+        }
+      });
+    });
+
+    request.setTimeout(5000, () => request.destroy(new Error('Timeout ao consultar API pública')));
+    request.on('error', reject);
+  });
+}
 
 app.use(express.json())
 app.use(express.urlencoded({extended: true}));
@@ -50,6 +77,15 @@ app.post('/simulate-error', (req, res, next) => {
   }
 
   next(new Error('Erro simulado para teste de falhas'))
+})
+
+app.get('/api-publica', async (req, res) => {
+  try {
+    res.json(await fetchPublicData());
+  } catch (error) {
+    console.error('Falha ao consultar API pública:', error.message);
+    res.status(502).json({ error: 'Não foi possível consultar a API pública' });
+  }
 })
 
 app.listen(port, () => console.log(`Example app listening on port ${port}!`));
