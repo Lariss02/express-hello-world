@@ -39,6 +39,19 @@ app.post('/series', (req, res) => {
   res.json(['Mentalista', 'supernatural', 'Doctor House'])
 })
 
+app.post('/simulate-error', (req, res, next) => {
+  const simulationKey = process.env.ERROR_SIMULATION_KEY
+  if (
+    process.env.ENABLE_ERROR_SIMULATION !== 'true' ||
+    !simulationKey ||
+    req.get('x-error-simulation-key') !== simulationKey
+  ) {
+    return res.sendStatus(404)
+  }
+
+  next(new Error('Erro simulado para teste de falhas'))
+})
+
 app.listen(port, () => console.log(`Example app listening on port ${port}!`));
 
 
